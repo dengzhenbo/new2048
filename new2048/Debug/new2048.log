@@ -1,0 +1,12 @@
+﻿  new2048.cpp
+D:\zeze\github\new2048\new2048\new2048.cpp(267,13): warning C4551: 缺少参数列表的函数调用
+D:\zeze\github\new2048\new2048\new2048.cpp(292,13): warning C4244: “参数”: 从“double”转换到“int”，可能丢失数据
+D:\zeze\github\new2048\new2048\new2048.cpp(293,13): warning C4244: “参数”: 从“double”转换到“int”，可能丢失数据
+D:\zeze\github\new2048\new2048\new2048.cpp(294,13): warning C4244: “参数”: 从“double”转换到“int”，可能丢失数据
+D:\zeze\github\new2048\new2048\new2048.cpp(301,96): warning C4244: “=”: 从“double”转换到“LONG”，可能丢失数据
+D:\zeze\github\new2048\new2048\new2048.cpp(302,106): warning C4244: “=”: 从“double”转换到“LONG”，可能丢失数据
+D:\zeze\github\new2048\new2048\new2048.cpp(303,93): warning C4244: “=”: 从“double”转换到“LONG”，可能丢失数据
+D:\zeze\github\new2048\new2048\new2048.cpp(304,105): warning C4244: “=”: 从“double”转换到“LONG”，可能丢失数据
+D:\zeze\github\new2048\new2048\new2048.cpp(276,17): warning C4101: “y”: 未引用的局部变量
+D:\zeze\github\new2048\new2048\new2048.cpp(275,17): warning C4101: “x”: 未引用的局部变量
+  new2048.vcxproj -> D:\zeze\github\new2048\Debug\new2048.exe
