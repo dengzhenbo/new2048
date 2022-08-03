@@ -3,7 +3,7 @@
 
 #include "framework.h"
 #include "new2048.h"
-
+//test
 //记录
 #define MAX_LOADSTRING 100
 #define MAX_CRedo 5//最大的单次可撤销次数
