@@ -52,6 +52,8 @@
 #define LEFT 2
 #define DOWN 4
 #define UP 8
+//计时器
+#define EscSecTimer 0
 
 // 全局变量:
 
@@ -61,35 +63,36 @@ struct tagNum
     int size = 0;
 }Num[4][4];//数组
 
-int Score = 0;//分数
+int Score = 0, MaxScore = 0;//分数
 int Redo = 0;//撤销和回档次数
+int EscSec = 0;//用时
 bool Fail = false;
 //颜色
 const COLORREF Color_AllBackground = RGB(235, 230, 220);//全部背景颜色
 const COLORREF Color_Background = RGB(165, 160, 150);//框框背景颜色
 const COLORREF Color_PenW = RGB(245, 245, 220);//其他信息颜色1（白）
-const COLORREF Color_PenB = RGB(60, 50, 45);//其他信息颜色2（黑）
+const COLORREF Color_PenB = RGB(80, 65, 55);//其他信息颜色2（黑）
 const COLORREF Color_NumL8Pen = RGB(60, 50, 45);//小于8的数字颜色
 const COLORREF Color_NumB8or8Pen = RGB(240, 240, 240);//大于等于8的数字颜色
 const COLORREF Color_Num[18]{//数字背景颜色
-    RGB(187,173,160),//NULL
+    RGB(165,160,150),//NULL
     RGB(240,230,220),//2
     RGB(235,225,200),//4
-    RGB(238,228,218),//8
-    RGB(238,228,218),//16
-    RGB(238,228,218),//32
-    RGB(238,228,218),//64
-    RGB(238,228,218),//128
-    RGB(238,228,218),//256
-    RGB(238,228,218),//512
-    RGB(238,228,218),//1024
-    RGB(238,228,218),//2048
-    RGB(238,228,218),//4096
-    RGB(238,228,218),//8192
-    RGB(238,228,218),//16384
-    RGB(238,228,218),//32768
-    RGB(238,228,218),//65536
-    RGB(238,228,218),//131072
+    RGB(240,140,90),//8
+    RGB(240,110,70),//16
+    RGB(240,100,65),//32
+    RGB(250,90,60),//64
+    RGB(240,195,130),//128
+    RGB(240,210,120),//256
+    RGB(250,235,110),//512
+    RGB(160,180,255),//1024
+    RGB(255,180,170),//2048
+    RGB(80,80,70),//4096
+    RGB(70,70,60),//8192
+    RGB(55,55,48),//16384
+    RGB(40,40,34),//32768
+    RGB(24,24,20),//65536
+    RGB(0,0,0),//131072
 };
 
 FILE* pf_Score, * pf_Redo;
@@ -100,12 +103,11 @@ WCHAR szTitle[MAX_LOADSTRING];                  // 标题栏文本
 WCHAR szWindowClass[MAX_LOADSTRING];            // 主窗口类名
 
 // 此代码模块中包含的函数的前向声明:
-bool JudgeNumMove(short MoveFace, tagNum* lpFirstNum = &Num[0][0]);//将数字块朝指定方向移动，移动成功返回true
-bool NumMove(short MoveFace, short Times, tagNum* lpFirstNum = &Num[0][0]);//JudgeNumMove内调用
-bool NumAdd(short MoveFace, tagNum* lpFirstNum = &Num[0][0]);//JudgeNumMove内调用
+bool JudgeNumMove(short MoveFace, tagNum* lpFirstNum = &Num[0][0], int* lpScore = &Score);//将数字块朝指定方向移动，移动成功返回true
 bool isFail(tagNum* lpFirstNum = &Num[0][0]);//是否无法移动（失败）
 void MakeNewGame(tagNum* lpFirstNum = &Num[0][0]);//开始新的一局
 void MakeRandNum(tagNum* lpFirstNum = &Num[0][0]);//制造一个新的数字（2或4）
+void UpdateRC();//更新所有RC
 
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
@@ -120,7 +122,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(lpCmdLine);
     
     // TODO: 在此处放置代码。
-    srand(unsigned(GetTickCount64));
+    srand(unsigned(GetTickCount64()));
     // 初始化全局字符串
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
     LoadStringW(hInstance, IDC_NEW2048, szWindowClass, MAX_LOADSTRING);
@@ -208,6 +210,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message)
     {
+        break;
     case WM_CREATE:
         {
         //获得系统参数
@@ -222,97 +225,147 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         WinRC.right = AllRCcx + 2 * cxSizeFrame + 9;//因为未知原因导致实际窗口大小小了7像素，所以加了这两个七
         WinRC.bottom = AllRCcy + cyCaption + 2 * cySizeFrame + 9;
         SetWindowPos(hWnd, NULL, WinRC.left, WinRC.top, WinRC.right, WinRC.bottom, SWP_NOOWNERZORDER);
-        SetRect(&RC,        0,          0,                                      MainRCc + 2 * NULLSpace,   AllRCcy                              );
-        SetRect(&ScoreRC,   NULLSpace,  NULLSpace,                              MainRCc + NULLSpace,       ScoreRCcy + NULLSpace                );
-        SetRect(&MainRC,    NULLSpace,  ScoreRCcy + 2 * NULLSpace,              MainRCc + NULLSpace,       MainRCc + ScoreRCcy + 2 * NULLSpace  );
-        SetRect(&MenuRC,    NULLSpace,  AllRCcy - MenuRCcy - NULLSpace,         MainRCc + NULLSpace,       AllRCcy - NULLSpace                  );
         SetRect(&StandardSizeRC, 0, 0, AllRCcx, AllRCcy);
+        UpdateRC();
         InvalidateRect(hWnd, &RC, FALSE);
         MakeNewGame();
+        SetTimer(hWnd, EscSecTimer, 1000, NULL);
+        /*
+        Num[0][0].size = 17;
+        Num[0][1].size = 16;
+        Num[0][2].size = 15;
+        Num[0][3].size = 14;
+        Num[1][0].size = 13;
+        Num[1][1].size = 12;
+        Num[1][2].size = 11;
+        Num[1][3].size = 10;
+        Num[2][0].size = 9;
+        Num[2][1].size = 8;
+        Num[2][2].size = 7;
+        Num[2][3].size = 6;
+        Num[3][0].size = 5;
+        Num[3][1].size = 4;
+        Num[3][2].size = 3;
+        Num[3][3].size = 2;
+        */
         }
         break;
     case WM_SIZE:
-        GetClientRect(hWnd, &RC);
+    {
+        //GetClientRect(hWnd, &RC);
+        RC.right = LOWORD(lParam);
+        RC.bottom = HIWORD(lParam);
+
         if (StandardSizeRC.right > 0 && StandardSizeRC.bottom > 0) {//防止除数小于0
             double StandardRight = StandardSizeRC.right, StandardButtom = StandardSizeRC.bottom;
             RelSize = min(RC.right / StandardRight, RC.bottom / StandardButtom);
         }
-        InvalidateRect(hWnd, &RC, FALSE);
+        UpdateRC();
+    }
+        //InvalidateRect(hWnd, NULL, FALSE);
         break;
     case WM_KEYFIRST:
         switch (wParam)
         {
-            BOOL Face;
         case 'A':
         case VK_LEFT:
-            Face = LEFT;
-            goto Move;
         case 'W':
         case VK_UP:
-            Face = UP;
-            goto Move;
         case 'D':
         case VK_RIGHT:
-            Face = RIGHT;
-            goto Move;
         case 'S':
         case VK_DOWN:
-            Face = DOWN;
-            goto Move;
+        if (JudgeNumMove(wParam))
+            MakeRandNum();
+        if (isFail())
+            Fail = true;
+            break;
         default:
             break;
-        Move:
-        if (JudgeNumMove(Face))
-            MakeRandNum();
-        if (isFail)
-            Fail = true;
         }
-        InvalidateRect(hWnd, &RC, FALSE);
+        InvalidateRect(hWnd, &RC, TRUE);
         break;
     case WM_PAINT:
-            {
-#define My_RoundRect(ahdc,aRC,width,height) RoundRect(ahdc, aRC.left * RelSize, aRC.top * RelSize, aRC.right * RelSize, aRC.bottom * RelSize, width * RelSize, height * RelSize)//更方便地绘制，RelSize在更改窗口大小后才会变
-            int x;
-            int y;
-            HDC hdc;
-            PAINTSTRUCT ps;
-            HBRUSH hBrush;
-            HFONT hFont;
-            //HPEN hPen;
-            TCHAR XName[100] = {};
-            TCHAR XNum[7] = {};
-            hdc = BeginPaint(hWnd, &ps);
-            //hPen = CreatePen(PS_NULL, 10, Color_NumB8or8Pen);
-            //SelectObject(hdc, hPen);
-            //背景
-            SetBkMode(hdc, TRANSPARENT);
+    {
+#define My_RoundRect(ahdc,aRC,width,height) RoundRect(ahdc, aRC.left, aRC.top, aRC.right, aRC.bottom, width * RelSize, height * RelSize)//更方便地绘制，RelSize在更改窗口大小后才会变
+        HDC hdc;
+        PAINTSTRUCT ps;
+        HBRUSH hBrush;
+        HFONT hFont;
+        HPEN hPen;
+        TCHAR XName[100] = {};
+        TCHAR XNum[13] = {};
+        hdc = BeginPaint(hWnd, &ps);
+        hPen = CreatePen(PS_NULL, 0, 0);
+        SelectObject(hdc, hPen);
+        //背景
+        SetBkMode(hdc, TRANSPARENT);
 
-            hBrush = CreateSolidBrush(Color_Background);
-            SelectObject(hdc, hBrush);
-            My_RoundRect(hdc, ScoreRC, 50, 50);
-            My_RoundRect(hdc, MainRC, 50, 50);
-            My_RoundRect(hdc, MenuRC, 50, 50);
-            //砖块
-            int NumRCc = (MainRCc - 5 * NULLMainSpace) / 4;
-            for (int y = 0; y < 4; y++) {
-                for (int x = 0; x < 4; x++) {
-                    if (Num[y][x].size != NULL) {
-                        swprintf(XNum, _T("%d\0"), 1 << Num[y][x].size);
-                        Num[x][y].rc.left = ((x + 1) * NULLMainSpace + x * NumRCc + NULLSpace) * RelSize;
-                        Num[x][y].rc.top = ((y + 1) * NULLMainSpace + y * NumRCc + MenuRCcy + NULLSpace) * RelSize;
-                        Num[x][y].rc.right = (x + 1) * (NULLMainSpace + NumRCc + NULLSpace) * RelSize;
-                        Num[x][y].rc.bottom = (y + 1) * (NULLMainSpace + NumRCc + MenuRCcy + NULLSpace) * RelSize;
-
-                        hFont = CreateFontA(NumRCc / 2, NumRCc / 2, 0, 0, FW_BOLD, 0, 0, 0, 0, 0, 0, 0, DEFAULT_PITCH, (LPCSTR)XNum);
-                        SelectObject(hdc, hFont);
-                        DrawText(hdc, XNum, -1, &Num[x][y].rc, DT_CENTER | DT_SINGLELINE | DT_VCENTER);
-                    }
+        hBrush = CreateSolidBrush(Color_Background);
+        SelectObject(hdc, hBrush);
+        My_RoundRect(hdc, ScoreRC, 50, 50);
+        My_RoundRect(hdc, MainRC, 50, 50);
+        My_RoundRect(hdc, MenuRC, 50, 50);
+        //分数
+        if (Score > MaxScore)
+            MaxScore = Score;
+        swprintf(XName, _T(" %ds  分数：%d  最高分：%d"), EscSec, Score, MaxScore);
+        hFont = CreateFontA(RelSize * ScoreRCcy, RelSize * 370 / wcslen(XName), 0, 0, RelSize * 700, 0, 0, 0, 0, 0, 0, 0, 0, (LPCSTR)XNum);
+        SelectObject(hdc, hFont);
+        SetTextColor(hdc, Color_PenB);
+        DrawText(hdc, XName, -1, &ScoreRC, NULL);
+        //砖块
+        int NumRCc = (MainRCc - 5 * NULLMainSpace) / 4;
+        for (int y = 0; y < 4; y++) {
+            for (int x = 0; x < 4; x++) {
+                if (Num[y][x].size != NULL) {
+                    swprintf(XNum, _T("%d\0"), 1 << Num[y][x].size);
+                    int Long = wcslen(XNum) + 1;
+                    Num[y][x].rc.left = ((x + 1) * NULLMainSpace + x * NumRCc + NULLSpace) * RelSize;
+                    Num[y][x].rc.top = ((y + 1) * NULLMainSpace + y * NumRCc + ScoreRCcy + NULLSpace * 2) * RelSize;
+                    Num[y][x].rc.right = ((x + 1) * (NULLMainSpace + NumRCc) + NULLSpace) * RelSize;
+                    Num[y][x].rc.bottom = ((y + 1) * (NULLMainSpace + NumRCc) + ScoreRCcy + NULLSpace * 2) * RelSize;
+                    //背景
+                    hBrush = CreateSolidBrush(Color_Num[Num[y][x].size]);
+                    SelectObject(hdc, hBrush);
+                    RoundRect(hdc, Num[y][x].rc.left, Num[y][x].rc.top, Num[y][x].rc.right, Num[y][x].rc.bottom, 20 * RelSize, 20 * RelSize);
+                    //字体
+                    hFont = CreateFontA((NumRCc / Long + NULLMainSpace * 3) * RelSize, NumRCc / Long * RelSize, 0, 0, RelSize * 700, 0, 0, 0, 0, 0, 0, 0, 0, (LPCSTR)XNum);
+                    SelectObject(hdc, hFont);
+                    if (Num[y][x].size < 3)
+                        SetTextColor(hdc, Color_NumL8Pen);
+                    else
+                        SetTextColor(hdc, Color_NumB8or8Pen);
+                    DrawText(hdc, (LPCWSTR)XNum, -1, &Num[y][x].rc, DT_CENTER | DT_SINGLELINE | DT_VCENTER);
                 }
             }
-
-            DeleteObject(hBrush);
-            //DeleteObject(hPen);
-            EndPaint(hWnd, &ps);
+        }
+        DeleteObject(hFont);
+        DeleteObject(hBrush);
+        DeleteObject(hPen);
+        EndPaint(hWnd, &ps);
+    }
+    if (Fail) {
+        KillTimer(hWnd, EscSecTimer);
+        MessageBox(hWnd, _T("是否重新开始？"), _T("你死了"), MB_OK);
+        MakeNewGame();
+        Score = 0;
+        EscSec = 0;
+        SetTimer(hWnd, EscSecTimer, 1000, NULL);
+        if (!isFail())
+            Fail = false;
+        InvalidateRect(hWnd, &RC, TRUE);
+        }
+        break;
+    case WM_TIMER:
+        switch (wParam)
+        {
+        case EscSecTimer:
+            EscSec++;
+            InvalidateRect(hWnd, &RC, TRUE);
+            break;
+        default:
+            break;
         }
         break;
     case WM_DESTROY:
@@ -325,7 +378,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 }
 
 //以下为函数
-bool JudgeNumMove(short MoveFace, tagNum* lpFirstNum) {
+bool JudgeNumMove(short MoveFace, tagNum* lpFirstNum, int* lpScore) {
     tagNum* pNumCur = lpFirstNum, * pNum2 = pNumCur;
     bool isMove = false;
 #define NAN 999
@@ -333,150 +386,83 @@ bool JudgeNumMove(short MoveFace, tagNum* lpFirstNum) {
     switch (MoveFace)
     {
     case RIGHT:
+    case VK_RIGHT:
+    case 'D':
         pNum2add = 1;//在pNumCur右边
         NumCurDoNotIn_x = 3;
-        break;
-    case LEFT:
-        pNum2add = -1;//在pNumCur左边
-        NumCurDoNotIn_x = 0;
         ListStart = LEFT;
         break;
+    case LEFT:
+    case VK_LEFT:
+    case 'A':
+        pNum2add = -1;//在pNumCur左边
+        NumCurDoNotIn_x = 0;
+        ListStart = RIGHT;
+        break;
     case DOWN:
+    case VK_DOWN:
+    case 'S':
         pNum2add = 4;//在pNumCur下边
         NumCurDoNotIn_y = 3;
+        ListStart = LEFT;
         break;
     case UP:
+    case VK_UP:
+    case 'W':
     default:
         pNum2add = -4;//在pNumCur上边
         NumCurDoNotIn_y = 0;
-        ListStart = LEFT;
+        ListStart = RIGHT;
         break;
     }
     int x = 0; int y = 0;
     for (short times = 1; times <= 6; times++) {
-        pNumCur = lpFirstNum; pNum2 = pNumCur + pNum2add;
+        if (ListStart == LEFT) {
+            pNumCur = lpFirstNum + 15; pNum2 = pNumCur + pNum2add;
+        }
+        else {
+            pNumCur = lpFirstNum; pNum2 = pNumCur + pNum2add;
+        }
         for (int ft = 0; ft < 16; ft++) {
-            switch (ListStart)
-            {
-            case RIGHT:
-                x = ft % 4;//0123
-                y = (ft - ft % 4) / 4;//0123
-                break;
-            case LEFT:
-            default:
+            if (ListStart == LEFT) {
                 x = 3 - ft % 4;//3210
                 y = 3 - (ft - ft % 4) / 4;//3210
-                break;
             }
-                if (x != NumCurDoNotIn_x && y != NumCurDoNotIn_y) {//保证不越界，比如Num2在NumCur左边，则当NumCur的x==0时，不与Num2比较，也就是不与x==-1的比较
-                    switch (times)
-                    {
-                    case 4:
-                        if (pNumCur->size != NULL && pNumCur->size == pNum2->size) {//可相加
+            else {
+                x = ft % 4;//0123
+                y = (ft - ft % 4) / 4;//0123
+            }
+
+            if (x != NumCurDoNotIn_x && y != NumCurDoNotIn_y) {//保证不越界，比如Num2在NumCur左边，则当NumCur的x==0时，不与Num2比较，也就是不与x==-1的比较
+                switch (times)
+                {
+                case 4:
+                    if (pNumCur->size != NULL && pNumCur->size == pNum2->size) {//可相加
                         pNum2->size = pNumCur->size + 1;
+                        (*lpScore) += 1 << pNum2->size;
+                        pNumCur->size = NULL;
                         isMove = true;
-                        }
-                        break;
-                    default:
-                        if (pNumCur->size != NULL && pNum2->size == NULL) {//可移动
-                            pNum2->size = pNumCur->size;
-                            pNumCur->size = NULL;
-                            isMove = true;
-                        }
-                        break;
                     }
-                }
-                pNumCur++; pNum2++;
-        }
-    }
-#undef NAN
-    return isMove;
-}
-
-bool NumMove(short MoveFace, short Times, tagNum* lpFirstNum) {
-    tagNum* pNumCur = lpFirstNum, * pNum2 = pNumCur;
-    bool isMove = false;
-#define NAN 999
-    short NumCurDoNotIn_x = NAN, NumCurDoNotIn_y = NAN, pNum2add = NAN;
-    switch (MoveFace)
-    {
-    case RIGHT:
-        pNum2add = 1;//在pNumCur右边
-        NumCurDoNotIn_x = 3;
-        break;
-    case LEFT:
-        pNum2add = -1;//在pNumCur左边
-        NumCurDoNotIn_x = 0;
-        break;
-    case DOWN:
-        pNum2add = 4;//在pNumCur下边
-        NumCurDoNotIn_y = 3;
-        break;
-    case UP:
-    default:
-        pNum2add = -4;//在pNumCur上边
-        NumCurDoNotIn_y = 0;
-        break;
-    }
-
-    for (short i = 0; i < Times; i++) {
-        pNumCur = lpFirstNum; pNum2 = pNumCur + pNum2add;
-        for (int y = 0; y < 4; y++) {
-            for (int x = 0; x < 4; x++) {
-                if (x != NumCurDoNotIn_x && y != NumCurDoNotIn_y) {//保证不越界，比如Num2在NumCur左边，则当NumCur的x==0时，不与Num2比较，也就是不与x==-1的比较
+                    break;
+                default:
                     if (pNumCur->size != NULL && pNum2->size == NULL) {//可移动
                         pNum2->size = pNumCur->size;
                         pNumCur->size = NULL;
                         isMove = true;
                     }
+                    break;
                 }
+            }
+            if (ListStart == LEFT) {
+                pNumCur--; pNum2--;
+            }
+            else {
                 pNumCur++; pNum2++;
             }
         }
     }
 #undef NAN
     return isMove;
-}
-
-bool NumAdd(short MoveFace, tagNum* lpFirstNum) {
-    tagNum* pNumCur = lpFirstNum, * pNum2 = pNumCur;
-    bool isAdd = false;
-#define NAN 999
-    short NumCurDoNotIn_x = NAN, NumCurDoNotIn_y = NAN;
-    switch (MoveFace)
-    {
-    case RIGHT:
-        NumCurDoNotIn_x = 3;
-        pNum2++;//在pNumCur右边
-        break;
-    case LEFT:
-        NumCurDoNotIn_x = 0;
-        pNum2--;//在pNumCur左边
-        break;
-    case DOWN:
-        NumCurDoNotIn_y = 3;
-        pNum2 += 4;//在pNumCur下边
-        break;
-    case UP:
-    default:
-        NumCurDoNotIn_y = 0;
-        pNum2 -= 4;//在pNumCur上边
-        break;
-    }
-
-    for (int y = 0; y < 4; y++) {
-        for (int x = 0; x < 4; x++) {
-            if (x != NumCurDoNotIn_x && y !=NumCurDoNotIn_y) {//保证不越界，比如Num2在NumCur左边，则当NumCur的x==0时，不与Num2比较，也就是不与x==-1的比较
-                if (pNumCur->size != NULL && pNumCur->size == pNum2->size) {//可相加
-                    pNum2->size = pNumCur->size + 1;
-                    isAdd = true;
-                }
-            }
-            pNumCur++; pNum2++;
-        }
-    }
-#undef NAN
-    return isAdd;
 }
 
 bool isFail(tagNum* lpFirstNum) {
@@ -526,6 +512,14 @@ void MakeRandNum(tagNum* lpFirstNum) {
     }
     if (j != -1) {
         pNum = lpFirstNum + NULLNum[j ? rand() % j : 0];
-        pNum->size = (rand() % 10 >= 9 ? 2 : 1);
+        pNum->size = (rand() % 10 >= 9 ? 2 : 1);//10%概率生成4
     }
+}
+
+void UpdateRC() {
+#define My_SetRect(aRC,left,top,right,buttom) (SetRect(&aRC,(left)*RelSize,(top)*RelSize,(right)*RelSize,(buttom)*RelSize))
+        My_SetRect(RC,      0,          0,                                  MainRCc + 2 * NULLSpace,    AllRCcy);
+        My_SetRect(ScoreRC, NULLSpace,  NULLSpace,                          MainRCc + NULLSpace,        ScoreRCcy + NULLSpace);
+        My_SetRect(MainRC,  NULLSpace,  ScoreRCcy + 2 * NULLSpace,          MainRCc + NULLSpace,        MainRCc + ScoreRCcy + 2 * NULLSpace);
+        My_SetRect(MenuRC,  NULLSpace,  AllRCcy - MenuRCcy - NULLSpace,     MainRCc + NULLSpace,        AllRCcy - NULLSpace);
 }

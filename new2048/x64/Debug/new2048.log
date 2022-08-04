@@ -1,1 +1,23 @@
-﻿
+﻿  new2048.cpp
+D:\zeze\new2048\new2048\new2048.cpp(278,26): warning C4244: “参数”: 从“WPARAM”转换到“short”，可能丢失数据
+D:\zeze\new2048\new2048\new2048.cpp(306,9): warning C4244: “参数”: 从“double”转换到“int”，可能丢失数据
+D:\zeze\new2048\new2048\new2048.cpp(307,9): warning C4244: “参数”: 从“double”转换到“int”，可能丢失数据
+D:\zeze\new2048\new2048\new2048.cpp(308,9): warning C4244: “参数”: 从“double”转换到“int”，可能丢失数据
+D:\zeze\new2048\new2048\new2048.cpp(313,95): warning C4244: “参数”: 从“double”转换到“int”，可能丢失数据
+D:\zeze\new2048\new2048\new2048.cpp(313,64): warning C4244: “参数”: 从“double”转换到“int”，可能丢失数据
+D:\zeze\new2048\new2048\new2048.cpp(313,37): warning C4244: “参数”: 从“double”转换到“int”，可能丢失数据
+D:\zeze\new2048\new2048\new2048.cpp(323,48): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+D:\zeze\new2048\new2048\new2048.cpp(324,92): warning C4244: “=”: 从“double”转换到“LONG”，可能丢失数据
+D:\zeze\new2048\new2048\new2048.cpp(325,107): warning C4244: “=”: 从“double”转换到“LONG”，可能丢失数据
+D:\zeze\new2048\new2048\new2048.cpp(326,91): warning C4244: “=”: 从“double”转换到“LONG”，可能丢失数据
+D:\zeze\new2048\new2048\new2048.cpp(327,108): warning C4244: “=”: 从“double”转换到“LONG”，可能丢失数据
+D:\zeze\new2048\new2048\new2048.cpp(331,131): warning C4244: “参数”: 从“double”转换到“int”，可能丢失数据
+D:\zeze\new2048\new2048\new2048.cpp(331,117): warning C4244: “参数”: 从“double”转换到“int”，可能丢失数据
+D:\zeze\new2048\new2048\new2048.cpp(333,127): warning C4244: “参数”: 从“double”转换到“int”，可能丢失数据
+D:\zeze\new2048\new2048\new2048.cpp(333,102): warning C4244: “参数”: 从“double”转换到“int”，可能丢失数据
+D:\zeze\new2048\new2048\new2048.cpp(333,77): warning C4244: “参数”: 从“double”转换到“int”，可能丢失数据
+D:\zeze\new2048\new2048\new2048.cpp(521,9): warning C4244: “参数”: 从“double”转换到“int”，可能丢失数据
+D:\zeze\new2048\new2048\new2048.cpp(522,9): warning C4244: “参数”: 从“double”转换到“int”，可能丢失数据
+D:\zeze\new2048\new2048\new2048.cpp(523,9): warning C4244: “参数”: 从“double”转换到“int”，可能丢失数据
+D:\zeze\new2048\new2048\new2048.cpp(524,9): warning C4244: “参数”: 从“double”转换到“int”，可能丢失数据
+  new2048.vcxproj -> D:\zeze\new2048\x64\Debug\new2048.exe
